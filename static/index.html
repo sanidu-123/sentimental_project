@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Analysis Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        textarea {
+            display: block;
+            margin-bottom: 10px;
+        }
+        canvas {
+            max-width: 400px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Sentiment Analysis Dashboard</h1>
+    <textarea id="text-input" rows="5" cols="50" placeholder="Enter text here..."></textarea>
+    <button id="analyze-btn">Analyze</button>
+    <div id="result"></div>
+    <canvas id="pie-chart"></canvas>
+    <canvas id="line-chart"></canvas>
+
+    <script>
+        let pieChart;
+        let lineChart;
+
+        // Initialize charts with empty data
+        function createCharts() {
+            const pieCtx = document.getElementById('pie-chart').getContext('2d');
+            pieChart = new Chart(pieCtx, {
+                type: 'pie',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: ['#FF6384', '#36A2EB']  // Colors for negative, positive
+                    }]
+                }
+            });
+
+            const lineCtx = document.getElementById('line-chart').getContext('2d');
+            lineChart = new Chart(lineCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Sentiment Trend',
+                        data: [],
+                        borderColor: '#4BC0C0',
+                        fill: false
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            min: -1,
+                            max: 1,
+                            title: { display: true, text: 'Sentiment (-1 to 1)' }
+                        },
+                        x: { title: { display: true, text: 'Time' } }
+                    }
+                }
+            });
+        }
+
+        // Update charts with data from /stats
+        function updateCharts() {
+            fetch('/stats')
+                .then(response => response.json())
+                .then(data => {
+                    // Update pie chart
+                    pieChart.data.labels = Object.keys(data.sentiment_counts);
+                    pieChart.data.datasets[0].data = Object.values(data.sentiment_counts);
+                    pieChart.update();
+
+                    // Update line chart
+                    lineChart.data.labels = data.analyses.map(a => a.timestamp);
+                    lineChart.data.datasets[0].data = data.analyses.map(a => a.sentiment);
+                    lineChart.update();
+                });
+        }
+
+        // Handle analyze button click
+        document.getElementById('analyze-btn').addEventListener('click', function() {
+            const text = document.getElementById('text-input').value;
+            if (text.trim() === '') return;  // Basic validation
+
+            fetch('/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: text })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultDiv = document.getElementById('result');
+                resultDiv.innerHTML = `Sentiment: ${data.label}, Confidence: ${data.score.toFixed(4)}`;
+                document.getElementById('text-input').value = '';  // Clear input
+                updateCharts();  // Refresh charts with new data
+            })
+            .catch(error => console.error('Error:', error));
+        });
+
+        // Initialize and load initial data
+        createCharts();
+        updateCharts();
+    </script>
+</body>
+</html>
