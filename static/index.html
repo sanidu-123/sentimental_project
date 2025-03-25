@@ -4,69 +4,114 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sentiment Analysis Dashboard</title>
+    <link rel="stylesheet" href="/static/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        textarea {
-            display: block;
-            margin-bottom: 10px;
-        }
-        canvas {
-            max-width: 400px;
-            margin: 20px 0;
-        }
-    </style>
+    <script src="https://unpkg.com/wordcloud@1.2.1/src/wordcloud2.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
-    <h1>Sentiment Analysis Dashboard</h1>
-    <textarea id="text-input" rows="5" cols="50" placeholder="Enter text here..."></textarea>
-    <button id="analyze-btn">Analyze</button>
-    <div id="result"></div>
-    <canvas id="pie-chart"></canvas>
-    <canvas id="line-chart"></canvas>
+    <div class="container">
+        <h1>Sentiment Analysis Dashboard</h1>
+        <textarea id="text-input" rows="5" placeholder="Enter text here..."></textarea>
+        <button id="analyze-btn">Analyze</button>
+        <div id="result"></div>
+
+        <div class="chart-container">
+            <div class="chart-wrapper">
+                <canvas id="pie-chart"></canvas>
+            </div>
+            <div class="chart-wrapper">
+                <canvas id="bar-chart"></canvas>
+            </div>
+            <div class="chart-wrapper">
+                <canvas id="line-chart"></canvas>
+            </div>
+            <div class="chart-wrapper">
+                <div id="word-cloud-positive" class="word-cloud"></div>
+            </div>
+            <div class="chart-wrapper">
+                <div id="word-cloud-negative" class="word-cloud"></div>
+            </div>
+            <div class="chart-wrapper">
+                <canvas id="area-chart"></canvas>
+            </div>
+            <div class="chart-wrapper">
+                <div id="heatmap-positive" class="heatmap"></div>
+            </div>
+            <div class="chart-wrapper">
+                <div id="heatmap-negative" class="heatmap"></div>
+            </div>
+        </div>
+    </div>
 
     <script>
-        let pieChart;
-        let lineChart;
+        let pieChart, lineChart, barChart, areaChart;
 
-        // Initialize charts with empty data
+        // Initialize charts
         function createCharts() {
-            const pieCtx = document.getElementById('pie-chart').getContext('2d');
-            pieChart = new Chart(pieCtx, {
+            // Pie Chart
+            pieChart = new Chart(document.getElementById('pie-chart').getContext('2d'), {
                 type: 'pie',
                 data: {
                     labels: [],
-                    datasets: [{
-                        data: [],
-                        backgroundColor: ['#FF6384', '#36A2EB']  // Colors for negative, positive
-                    }]
+                    datasets: [{ data: [], backgroundColor: ['#FF6384', '#36A2EB'] }]
+                },
+                options: { 
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        title: { 
+                            display: true, text: 'Sentiment Distribution' 
+                        } 
+                    } 
                 }
             });
 
-            const lineCtx = document.getElementById('line-chart').getContext('2d');
-            lineChart = new Chart(lineCtx, {
+            // Line Chart
+            lineChart = new Chart(document.getElementById('line-chart').getContext('2d'), {
                 type: 'line',
                 data: {
                     labels: [],
-                    datasets: [{
-                        label: 'Sentiment Trend',
-                        data: [],
-                        borderColor: '#4BC0C0',
-                        fill: false
-                    }]
+                    datasets: [{ label: 'Sentiment Trend', data: [], borderColor: '#4BC0C0', fill: false }]
                 },
                 options: {
                     scales: {
-                        y: {
-                            min: -1,
-                            max: 1,
-                            title: { display: true, text: 'Sentiment (-1 to 1)' }
-                        },
+                        y: { min: -1, max: 1, title: { display: true, text: 'Sentiment (-1 to 1)' } },
                         x: { title: { display: true, text: 'Time' } }
-                    }
+                    },
+                    plugins: { title: { display: true, text: 'Sentiment Trend Over Time' } }
+                }
+            });
+
+            // Bar Chart
+            barChart = new Chart(document.getElementById('bar-chart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [
+                        { label: 'Positive', data: [], backgroundColor: '#36A2EB' },
+                        { label: 'Negative', data: [], backgroundColor: '#FF6384' }
+                    ]
+                },
+                options: {
+                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Count' } } },
+                    plugins: { title: { display: true, text: 'Score Distribution' } }
+                }
+            });
+
+            // Stacked Area Chart
+            areaChart = new Chart(document.getElementById('area-chart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        { label: 'Positive', data: [], fill: 'origin', backgroundColor: 'rgba(54, 162, 235, 0.5)' },
+                        { label: 'Negative', data: [], fill: 'origin', backgroundColor: 'rgba(255, 99, 132, 0.5)' }
+                    ]
+                },
+                options: {
+                    scales: { y: { stacked: true, title: { display: true, text: 'Count' } } },
+                    plugins: { title: { display: true, text: 'Sentiment Over Time' } }
                 }
             });
         }
@@ -76,22 +121,69 @@
             fetch('/stats')
                 .then(response => response.json())
                 .then(data => {
-                    // Update pie chart
+                    // Pie Chart
                     pieChart.data.labels = Object.keys(data.sentiment_counts);
                     pieChart.data.datasets[0].data = Object.values(data.sentiment_counts);
                     pieChart.update();
 
-                    // Update line chart
+                    // Line Chart
                     lineChart.data.labels = data.analyses.map(a => a.timestamp);
                     lineChart.data.datasets[0].data = data.analyses.map(a => a.sentiment);
                     lineChart.update();
-                });
+
+                    // Bar Chart
+                    barChart.data.labels = data.score_distribution.bins;
+                    barChart.data.datasets[0].data = data.score_distribution.positive;
+                    barChart.data.datasets[1].data = data.score_distribution.negative;
+                    barChart.update();
+
+                    // Word Clouds
+                    WordCloud(document.getElementById('word-cloud-positive'), {
+                        list: Object.entries(data.word_frequencies.positive),
+                        weightFactor: 10,
+                        color: '#36A2EB'
+                    });
+                    WordCloud(document.getElementById('word-cloud-negative'), {
+                        list: Object.entries(data.word_frequencies.negative),
+                        weightFactor: 10,
+                        color: '#FF6384'
+                    });
+
+                    // Stacked Area Chart
+                    areaChart.data.labels = data.time_trends.hours;
+                    areaChart.data.datasets[0].data = data.time_trends.positive;
+                    areaChart.data.datasets[1].data = data.time_trends.negative;
+                    areaChart.update();
+
+                    // Heatmaps (Plotly)
+                    Plotly.newPlot('heatmap-positive', [{
+                        z: data.heatmap.positive,
+                        x: data.heatmap.hours,
+                        y: data.heatmap.days,
+                        type: 'heatmap',
+                        colorscale: 'Blues'
+                    }], { title: 'Positive Sentiment Heatmap',
+                    responsive: true,
+                    autosize: true   
+                     });
+                    Plotly.newPlot('heatmap-negative', [{
+                        z: data.heatmap.negative,
+                        x: data.heatmap.hours,
+                        y: data.heatmap.days,
+                        type: 'heatmap',
+                        colorscale: 'Reds'
+                    }], { title: 'Negative Sentiment Heatmap',
+                    responsive: true,
+                    autosize: true   
+                     });
+                })
+                .catch(error => console.error('Error:', error));
         }
 
         // Handle analyze button click
         document.getElementById('analyze-btn').addEventListener('click', function() {
             const text = document.getElementById('text-input').value;
-            if (text.trim() === '') return;  // Basic validation
+            if (text.trim() === '') return;
 
             fetch('/analyze', {
                 method: 'POST',
@@ -100,10 +192,10 @@
             })
             .then(response => response.json())
             .then(data => {
-                const resultDiv = document.getElementById('result');
-                resultDiv.innerHTML = `Sentiment: ${data.label}, Confidence: ${data.score.toFixed(4)}`;
-                document.getElementById('text-input').value = '';  // Clear input
-                updateCharts();  // Refresh charts with new data
+                document.getElementById('result').innerHTML = 
+                    `Sentiment: ${data.label}, Confidence: ${data.score.toFixed(4)}`;
+                //document.getElementById('text-input').value = '';
+                updateCharts();
             })
             .catch(error => console.error('Error:', error));
         });
