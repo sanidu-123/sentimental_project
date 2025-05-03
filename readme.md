@@ -132,5 +132,5 @@ By this chart, we can identify potential user behaviour. When analyzing this cha
 
 * Contribution
   1. HSS Hewage- contribute to the front end and provide support for app.py
-  2. GLS Chamaka-
-  3. MSS Piyarathne- 
+  2. GLS Chamaka- contribute to the app.py and provide support for the front end
+  3. MSS Piyarathne- Contribution to the app.py and building the database
