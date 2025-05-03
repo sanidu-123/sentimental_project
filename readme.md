@@ -11,9 +11,11 @@ There are several charts we use to analyze the sentiments.
 
 ### Sentiment Distribution chart
 ![image](https://github.com/user-attachments/assets/f3d4bdd9-d7b5-4183-a406-ef37bd370afe)
+
 This chart presents the overall positive and negative sentiments. We used green and red colours for better understanding and user interaction. Legends are also provided for the identification of the chart.
 
 ### Score Distribution chart
 ![image](https://github.com/user-attachments/assets/f31e3482-39fb-445f-bfb9-55afb8bf4fbb)
+
 This showcases the number of analyses for each sentiment score range. The ranges are 0.5-0.6,0.6-0.7,0.7-0.8,0.8-0.9,0.9-1.0. Charts also represent positive and negative scores at the same time.
 
