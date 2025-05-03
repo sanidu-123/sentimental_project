@@ -1,26 +1,89 @@
 # Sentiment Analysis and Trend Dashboard
 
+# Sentiment Analysis Dashboard
+
+A real-time web application for text sentiment analysis with visualization capabilities.
+
 ## Overview
-This Flask-based web application performs sentiment analysis on text inputs using Hugging Face's Transformers library. The application stores analysis results in SQLite, generates statistics, and visualizes data through charts and word clouds.
+
+This dashboard analyzes text sentiment in real-time, classifying input as positive, negative, or neutral. It provides comprehensive visualization of results through interactive charts, word clouds, and time-based analytics. The application stores all analyses in a database to track sentiment patterns over time.
 
 ## Features
-* Sentiment Analysis: Analyzes text and classifies it as positive or negative with a confidence score
-* Interactive Dashboard: Visualizes sentiment distribution, score ranges, and time-based patterns
-* Word Clouds: Generates visual representations of word frequency for positive and negative sentiments
-* Recent Activity: Displays the latest sentiment analysis entries
 
-## Technical Architecture
+- **Real-time Sentiment Analysis**: Immediate feedback on text sentiment
+- **Multi-class Classification**: Positive, negative, and neutral detection with confidence scores
+- **Interactive Visualizations**:
+  - Sentiment distribution pie chart
+  - Score distribution bar chart
+  - Word clouds for each sentiment category
+  - Time trend analysis
+  - Day/hour heatmap
+- **Responsive Design**: Mobile-friendly interface
 
-### Backend Components
-* Flask: Handles HTTP requests, routing, and serves the frontend
-* Transformers: Uses pre-trained NLP models for sentiment analysis
-* SQLite: Stores analysis results with timestamp, text, label, and score
-* NLTK: Processes text for word frequency analysis and tokenization
-* WordCloud: Generates visual word frequency representations
-* Logging: Captures operational events and errors
+## Technology Stack
 
-### Database Schema
-![image](https://github.com/user-attachments/assets/d02e0aa6-e65b-4709-aa57-1ddff2219a00)
+### Backend
+- **Flask**: Web framework
+- **Transformers (Hugging Face)**: NLP model for sentiment analysis
+- **NLTK**: Text preprocessing
+- **SQLite**: Data storage
+- **WordCloud**: Word cloud generation
+
+### Frontend
+- **HTML/CSS/JavaScript**: Core web technologies
+- **Chart.js**: Simple charts (pie, bar)
+- **ECharts**: Advanced visualizations (time series, heatmap)
+
+## Installation
+
+1. Clone the repository
+2. Create and activate a virtual environment:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+3. Install dependencies:
+   ```bash
+   pip install flask transformers nltk wordcloud torch
+   ```
+4. Run the application:
+   ```bash
+   python app.py
+   ```
+5. Access at `http://localhost:5000`
+
+## Usage
+
+1. Enter text in the input area
+2. Click "Analyze Sentiment"
+3. View results and automatically updated visualizations
+
+## API Endpoints
+
+### `/analyze` (POST)
+Analyzes text sentiment.
+```json
+Request: {"text": "Text to analyze"}
+Response: {"status": "success", "data": {"result": {"label": "POSITIVE", "score": 0.95}}}
+```
+
+### `/stats` (GET)
+Retrieves visualization data.
+
+### `/wordcloud/<sentiment>` (GET)
+Generates a word cloud for the specified sentiment.
+
+### `/recent` (GET)
+Lists recent analyses.
+
+## Future Improvements
+
+- Multi-language support
+- User accounts and authentication
+- Data export functionality
+- Custom model training
+- Aspect-based sentiment analysis
+- Batch processing
 
 ## Dashboard overview
 Mainly use HTML, CSS, JavaScript for building the interface. This application provides sentiment analysis of text input and displays various analytics through interactive charts and visualizations. The dashboard includes:
