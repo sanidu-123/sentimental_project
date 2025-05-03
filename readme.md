@@ -1,5 +1,3 @@
-myenv/scripts/activate
-
 # Sentiment Analysis and Trend Dashboard
 
 ## Overview
