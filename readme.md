@@ -22,13 +22,7 @@ This Flask-based web application performs sentiment analysis on text inputs usin
 * Logging: Captures operational events and errors
 
 # Database Schema
-CREATE TABLE analyses (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    text TEXT NOT NULL,
-    label TEXT CHECK(label IN ('POSITIVE', 'NEGATIVE')) NOT NULL,
-    score REAL CHECK(score >= 0 AND score <= 1) NOT NULL
-)
+![image](https://github.com/user-attachments/assets/d02e0aa6-e65b-4709-aa57-1ddff2219a00)
 
 ## Dashboard overview
 The dashboard can input text and get the output, if it is a positive or negative sentiment. The procedure is simple; the user needs to enter the text that they want to analyze, and can have the output immediately with confidence level and type of sentiment
