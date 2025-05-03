@@ -1,6 +1,6 @@
 myenv/scripts/activate
 
-# End-to-End Data Pipeline for T20 Cricket Data
+# Sentiment Analysis and Trend Dashboard
 
 ## Overview
 This Flask-based web application performs sentiment analysis on text inputs using Hugging Face's Transformers library. The application stores analysis results in SQLite, generates statistics, and visualizes data through charts and word clouds.
@@ -11,9 +11,9 @@ This Flask-based web application performs sentiment analysis on text inputs usin
 * Word Clouds: Generates visual representations of word frequency for positive and negative sentiments
 * Recent Activity: Displays the latest sentiment analysis entries
 
-# Technical Architecture
+## Technical Architecture
 
-## Backend Components
+### Backend Components
 * Flask: Handles HTTP requests, routing, and serves the frontend
 * Transformers: Uses pre-trained NLP models for sentiment analysis
 * SQLite: Stores analysis results with timestamp, text, label, and score
@@ -21,10 +21,19 @@ This Flask-based web application performs sentiment analysis on text inputs usin
 * WordCloud: Generates visual word frequency representations
 * Logging: Captures operational events and errors
 
-# Database Schema
+### Database Schema
 ![image](https://github.com/user-attachments/assets/d02e0aa6-e65b-4709-aa57-1ddff2219a00)
 
 ## Dashboard overview
+Mainly use HTML, CSS, JavaScript for building the interface. This application provides sentiment analysis of text input and displays various analytics through interactive charts and visualizations. The dashboard includes:
+
+* Real-time sentiment analysis of user input
+* Pie chart showing overall sentiment distribution
+* Bar chart displaying score distributions for both positive and negative sentiments
+* Time-series chart showing sentiment trends over time
+* Day vs. Hour heatmap visualization of sentiment patterns
+* Word clouds for both positive and negative sentiment words
+
 The dashboard can input text and get the output, if it is a positive or negative sentiment. The procedure is simple; the user needs to enter the text that they want to analyze, and can have the output immediately with confidence level and type of sentiment
 ![image](https://github.com/user-attachments/assets/73a88e9d-b692-46d6-a8b7-e2dc63a597a1)
 
@@ -40,3 +49,23 @@ This chart presents the overall positive and negative sentiments. We used green 
 
 This showcases the number of analyses for each sentiment score range. The ranges are 0.5-0.6,0.6-0.7,0.7-0.8,0.8-0.9,0.9-1.0. Charts also represent positive and negative scores at the same time.
 
+### Word cloud for positive and negative sentiments
+![image](https://github.com/user-attachments/assets/4ed07c67-a4a0-4968-8d57-99d5ac3c2169)
+
+Word cloud used to present both positive and negative words according to frequency.
+
+### Sentiment time series chart
+![image](https://github.com/user-attachments/assets/35addff0-646b-40aa-8a01-16c74964f353)
+
+The chart shows that the positive and negative sentiment fluctuates over time. The user can observe individual positive and negative sentiment behaviour by selecting filters.
+
+### Sentiment heatmap Day vs Hour
+![image](https://github.com/user-attachments/assets/3437ae7f-62e9-43b0-b917-e815b5fd167e)
+
+By this chart, we can identify potential user behaviour. When analyzing this chart, we can get a brief idea of which days and which hours are mostly active with sentiment entries.
+
+* Frontend Structure
+
+ 1. html - Main dashboard UI
+ 2. JavaScript - for charts and interactions
+ 3. CSS - CSS styling files
