@@ -19,28 +19,31 @@ logger = logging.getLogger(__name__)
 
 # Download necessary NLTK data
 try:
-    nltk.download('stopwords', quiet=True)
-    nltk.download('punkt', quiet=True)
+    nltk.download("stopwords", quiet=True)
+    nltk.download("punkt", quiet=True)
 except Exception as e:
     logger.warning(f"NLTK download failed: {e}")
 
-app = Flask(__name__, static_folder='static')
+app = Flask(__name__, static_folder="static")
+
 
 # Initialize sentiment analysis model
 def initialize_model():
     try:
         logger.info("Initializing sentiment analysis model...")
-        classifier = pipeline('sentiment-analysis')
+        classifier = pipeline("sentiment-analysis")
         logger.info("Model initialized successfully")
         return classifier
     except Exception as e:
         logger.error(f"Failed to initialize model: {e}")
         raise
 
+
 classifier = initialize_model()
 
 # Database configuration
-DATABASE_PATH = os.path.join(os.getcwd(), 'sentiment.db')
+DATABASE_PATH = os.path.join(os.getcwd(), "sentiment.db")
+
 
 def get_db_connection():
     try:
@@ -51,10 +54,11 @@ def get_db_connection():
         logger.error(f"Database connection error: {e}")
         raise
 
+
 def init_db():
     try:
         with get_db_connection() as conn:
-            conn.execute('''
+            conn.execute("""
                 CREATE TABLE IF NOT EXISTS analyses (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -62,264 +66,290 @@ def init_db():
                     label TEXT CHECK(label IN ('POSITIVE', 'NEGATIVE')) NOT NULL,
                     score REAL CHECK(score >= 0 AND score <= 1) NOT NULL
                 )
-            ''')
-            conn.execute('CREATE INDEX IF NOT EXISTS idx_timestamp ON analyses (timestamp)')
-            conn.execute('CREATE INDEX IF NOT EXISTS idx_label ON analyses (label)')
+            """)
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_timestamp ON analyses (timestamp)"
+            )
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_label ON analyses (label)")
             conn.commit()
             logger.info("Database initialized successfully")
     except Exception as e:
         logger.error(f"Database initialization failed: {e}")
         raise
 
+
 init_db()
+
 
 def preprocess_text(text):
     try:
         tokens = word_tokenize(text.lower())
-        stop_words = set(stopwords.words('english'))
+        stop_words = set(stopwords.words("english"))
         return [w for w in tokens if w.isalnum() and w not in stop_words]
     except Exception as e:
         logger.warning(f"Text preprocessing failed, using fallback: {e}")
-        return re.findall(r'\w+', text.lower())
+        return re.findall(r"\w+", text.lower())
 
-@app.route('/')
+
+# Static File endpoint
+@app.route("/")
 def index():
     try:
-        return app.send_static_file('index.html')
+        return app.send_static_file("index.html")
     except Exception as e:
         logger.error(f"Failed to serve index.html: {e}")
         abort(404, description="Frontend not found")
 
-@app.route('/analyze', methods=['POST'])
+
+# Analyse endpoint
+@app.route("/analyze", methods=["POST"])
 def analyze():
     if not request.is_json:
         abort(400, description="Request must be JSON")
-    
+
     try:
         data = request.get_json()
-        if not data or 'text' not in data:
+        if not data or "text" not in data:
             abort(400, description="Missing text field in request")
-            
-        text = data.get('text', '').strip()
-        
+
+        text = data.get("text", "").strip()
+
         if not text:
             abort(400, description="Text cannot be empty")
         if len(text) > 1000:
             text = text[:1000]  # Truncate but don't error
-            
+
         result = classifier(text)[0]
-        label = result['label']
-        score = result['score']
-        
+        label = result["label"]
+        score = result["score"]
+
         with get_db_connection() as conn:
             conn.execute(
-                'INSERT INTO analyses (text, label, score) VALUES (?, ?, ?)',
-                (text, label, score)
+                "INSERT INTO analyses (text, label, score) VALUES (?, ?, ?)",
+                (text, label, score),
             )
             conn.commit()
-        
+
         response = {
-            'status': 'success',
-            'data': {
-                'result': {
-                    'label': label,
-                    'score': score
-                },
-                'processed_text': text
-            }
+            "status": "success",
+            "data": {
+                "result": {"label": label, "score": score},
+                "processed_text": text,
+            },
         }
         print("Response:", response)  # Debug print
         return jsonify(response)
     except Exception as e:
         logger.error(f"Analysis failed: {e}")
-        return jsonify({
-            'status': 'error',
-            'message': 'Analysis failed',
-            'error': str(e)
-        }), 500
+        return jsonify(
+            {"status": "error", "message": "Analysis failed", "error": str(e)}
+        ), 500
 
-@app.route('/stats', methods=['GET'])
+
+# Stats Endpoint
+@app.route("/stats", methods=["GET"])
 def stats():
     try:
         with get_db_connection() as conn:
             analyses = conn.execute(
-                'SELECT timestamp, text, label, score FROM analyses ORDER BY timestamp'
+                "SELECT timestamp, text, label, score FROM analyses ORDER BY timestamp"
             ).fetchall()
-        
+
         analyses_list = [dict(row) for row in analyses] if analyses else []
-        
+
         # Initialize default empty values
         response_data = {
-            'sentiment_counts': {'POSITIVE': 0, 'NEGATIVE': 0},
-            'score_distribution': {
-                'bins': ['0.5-0.6', '0.6-0.7', '0.7-0.8', '0.8-0.9', '0.9-1.0'],
-                'positive': [0, 0, 0, 0, 0],
-                'negative': [0, 0, 0, 0, 0]
+            "sentiment_counts": {"POSITIVE": 0, "NEGATIVE": 0},
+            "score_distribution": {
+                "bins": ["0.5-0.6", "0.6-0.7", "0.7-0.8", "0.8-0.9", "0.9-1.0"],
+                "positive": [0, 0, 0, 0, 0],
+                "negative": [0, 0, 0, 0, 0],
             },
-            'word_frequencies': {
-                'positive': {},
-                'negative': {}
+            "word_frequencies": {"positive": {}, "negative": {}},
+            "time_trends": {"hours": [], "positive": [], "negative": []},
+            "heatmap": {
+                "days": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+                "hours": [f"{h:02d}" for h in range(24)],
+                "positive": [[0] * 24 for _ in range(7)],
+                "negative": [[0] * 24 for _ in range(7)],
             },
-            'time_trends': {
-                'hours': [],
-                'positive': [],
-                'negative': []
-            },
-            'heatmap': {
-                'days': ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-                'hours': [f'{h:02d}' for h in range(24)],
-                'positive': [[0]*24 for _ in range(7)],
-                'negative': [[0]*24 for _ in range(7)]
-            }
         }
 
         if analyses_list:
             # 1. Sentiment Counts
-            response_data['sentiment_counts'] = dict(Counter(row['label'] for row in analyses_list))
-            
+            response_data["sentiment_counts"] = dict(
+                Counter(row["label"] for row in analyses_list)
+            )
+
             # 2. Score Distribution
             bins = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-            pos_scores = [row['score'] for row in analyses_list if row['label'] == 'POSITIVE']
-            neg_scores = [row['score'] for row in analyses_list if row['label'] == 'NEGATIVE']
-            
-            response_data['score_distribution']['positive'] = [
-                sum(1 for s in pos_scores if b1 <= s < b2) 
+            pos_scores = [
+                row["score"] for row in analyses_list if row["label"] == "POSITIVE"
+            ]
+            neg_scores = [
+                row["score"] for row in analyses_list if row["label"] == "NEGATIVE"
+            ]
+
+            response_data["score_distribution"]["positive"] = [
+                sum(1 for s in pos_scores if b1 <= s < b2)
                 for b1, b2 in zip(bins[:-1], bins[1:])
             ]
-            response_data['score_distribution']['negative'] = [
-                sum(1 for s in neg_scores if b1 <= s < b2) 
+            response_data["score_distribution"]["negative"] = [
+                sum(1 for s in neg_scores if b1 <= s < b2)
                 for b1, b2 in zip(bins[:-1], bins[1:])
             ]
-            
+
             # 3. Word Frequencies
-            all_pos_text = ' '.join(row['text'] for row in analyses_list if row['label'] == 'POSITIVE').lower()
-            all_neg_text = ' '.join(row['text'] for row in analyses_list if row['label'] == 'NEGATIVE').lower()
-            
-            try: 
+            all_pos_text = " ".join(
+                row["text"] for row in analyses_list if row["label"] == "POSITIVE"
+            ).lower()
+            all_neg_text = " ".join(
+                row["text"] for row in analyses_list if row["label"] == "NEGATIVE"
+            ).lower()
+
+            try:
                 pos_tokens = preprocess_text(all_pos_text)
                 neg_tokens = preprocess_text(all_neg_text)
-                
-                response_data['word_frequencies']['positive'] = dict(Counter(pos_tokens).most_common(30))
-                response_data['word_frequencies']['negative'] = dict(Counter(neg_tokens).most_common(30))
+
+                response_data["word_frequencies"]["positive"] = dict(
+                    Counter(pos_tokens).most_common(30)
+                )
+                response_data["word_frequencies"]["negative"] = dict(
+                    Counter(neg_tokens).most_common(30)
+                )
             except:
-                response_data['word_frequencies']['positive'] = dict(Counter(re.findall(r'\w+', all_pos_text)).most_common(30))
-                response_data['word_frequencies']['negative'] = dict(Counter(re.findall(r'\w+', all_neg_text)).most_common(30))
-            
+                response_data["word_frequencies"]["positive"] = dict(
+                    Counter(re.findall(r"\w+", all_pos_text)).most_common(30)
+                )
+                response_data["word_frequencies"]["negative"] = dict(
+                    Counter(re.findall(r"\w+", all_neg_text)).most_common(30)
+                )
+
             # 4. Time Trends
             hour_data = {}
             for row in analyses_list:
                 try:
-                    hour = row['timestamp'][:13]  # Extract YYYY-MM-DD HH
+                    hour = row["timestamp"][:13]  # Extract YYYY-MM-DD HH
                     if hour not in hour_data:
-                        hour_data[hour] = {'POSITIVE': 0, 'NEGATIVE': 0}
-                    hour_data[hour][row['label']] += 1
-                except:
-                    continue
-            
-            response_data['time_trends']['hours'] = sorted(hour_data.keys())
-            response_data['time_trends']['positive'] = [hour_data[h]['POSITIVE'] for h in response_data['time_trends']['hours']]
-            response_data['time_trends']['negative'] = [hour_data[h]['NEGATIVE'] for h in response_data['time_trends']['hours']]
-            
-            # 5. Heatmap
-            for row in analyses_list:
-                try:
-                    timestamp = row['timestamp']
-                    date_obj = datetime.datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
-                    day_of_week = date_obj.weekday()
-                    hour = date_obj.hour
-                    
-                    if row['label'] == 'POSITIVE':
-                        response_data['heatmap']['positive'][day_of_week][hour] += 1
-                    else:
-                        response_data['heatmap']['negative'][day_of_week][hour] += 1
+                        hour_data[hour] = {"POSITIVE": 0, "NEGATIVE": 0}
+                    hour_data[hour][row["label"]] += 1
                 except:
                     continue
 
-        return jsonify({
-            'status': 'success',
-            'data': response_data
-        })
+            response_data["time_trends"]["hours"] = sorted(hour_data.keys())
+            response_data["time_trends"]["positive"] = [
+                hour_data[h]["POSITIVE"] for h in response_data["time_trends"]["hours"]
+            ]
+            response_data["time_trends"]["negative"] = [
+                hour_data[h]["NEGATIVE"] for h in response_data["time_trends"]["hours"]
+            ]
+
+            # 5. Heatmap
+            for row in analyses_list:
+                try:
+                    timestamp = row["timestamp"]
+                    date_obj = datetime.datetime.strptime(
+                        timestamp, "%Y-%m-%d %H:%M:%S"
+                    )
+                    day_of_week = date_obj.weekday()
+                    hour = date_obj.hour
+
+                    if row["label"] == "POSITIVE":
+                        response_data["heatmap"]["positive"][day_of_week][hour] += 1
+                    else:
+                        response_data["heatmap"]["negative"][day_of_week][hour] += 1
+                except:
+                    continue
+
+        return jsonify({"status": "success", "data": response_data})
     except Exception as e:
         logger.error(f"Stats generation failed: {e}")
         abort(500, description="Could not generate statistics")
 
-@app.route('/wordcloud/<sentiment>')
+
+# Endpoint for  Word cloud
+
+
+@app.route("/wordcloud/<sentiment>")
 def wordcloud(sentiment):
-    if sentiment not in ['positive', 'negative']:
+    if sentiment not in ["positive", "negative"]:
         abort(400, description="Invalid sentiment type")
-    
+
     try:
         with get_db_connection() as conn:
             texts = conn.execute(
-                'SELECT text FROM analyses WHERE label = ?',
-                (sentiment.upper(),)
+                "SELECT text FROM analyses WHERE label = ?", (sentiment.upper(),)
             ).fetchall()
-        
+
         if not texts:
-            return jsonify({
-                'status': 'success',
-                'data': {
-                    'image': None,
-                    'message': 'No data available for word cloud'
+            return jsonify(
+                {
+                    "status": "success",
+                    "data": {
+                        "image": None,
+                        "message": "No data available for word cloud",
+                    },
                 }
-            })
-        
-        all_text = ' '.join([t['text'] for t in texts])
+            )
+
+        all_text = " ".join([t["text"] for t in texts])
         tokens = preprocess_text(all_text)
-        processed_text = ' '.join(tokens)
-        
+        processed_text = " ".join(tokens)
+
         # Generate word cloud
         wc = WordCloud(
-            width=800, 
-            height=400, 
-            background_color='white',
-            colormap='viridis' if sentiment == 'positive' else 'Reds',
-            max_words=100
+            width=800,
+            height=400,
+            background_color="white",
+            colormap="viridis" if sentiment == "positive" else "Reds",
+            max_words=100,
         ).generate(processed_text)
-        
+
         # Convert to base64 for web display
         img = io.BytesIO()
-        wc.to_image().save(img, 'PNG')
+        wc.to_image().save(img, "PNG")
         img.seek(0)
-        img_b64 = base64.b64encode(img.getvalue()).decode('utf-8')
-        
-        return jsonify({
-            'status': 'success',
-            'data': {
-                'image': f'data:image/png;base64,{img_b64}'
-            }
-        })
+        img_b64 = base64.b64encode(img.getvalue()).decode("utf-8")
+
+        return jsonify(
+            {"status": "success", "data": {"image": f"data:image/png;base64,{img_b64}"}}
+        )
     except Exception as e:
         logger.error(f"Word cloud generation failed: {e}")
         abort(500, description="Could not generate word cloud")
 
-@app.route('/recent', methods=['GET'])
+
+# Recent analysis of sentimental
+
+
+@app.route("/recent", methods=["GET"])
 def recent_analyses():
     try:
-        limit = min(int(request.args.get('limit', 10)), 100)  # Cap at 100
-        
+        limit = min(int(request.args.get("limit", 10)), 100)  # Cap at 100
+
         with get_db_connection() as conn:
             analyses = conn.execute(
-                'SELECT timestamp, text, label, score FROM analyses ORDER BY timestamp DESC LIMIT ?', 
-                (limit,)
+                "SELECT timestamp, text, label, score FROM analyses ORDER BY timestamp DESC LIMIT ?",
+                (limit,),
             ).fetchall()
-        
-        return jsonify({
-            'status': 'success',
-            'data': [dict(row) for row in analyses] if analyses else []
-        })
+
+        return jsonify(
+            {
+                "status": "success",
+                "data": [dict(row) for row in analyses] if analyses else [],
+            }
+        )
     except Exception as e:
         logger.error(f"Failed to fetch recent analyses: {e}")
         abort(500, description="Could not fetch recent analyses")
+
 
 @app.errorhandler(400)
 @app.errorhandler(404)
 @app.errorhandler(500)
 def handle_error(e):
-    return jsonify({
-        'status': 'error',
-        'message': e.description
-    }), e.code
+    return jsonify({"status": "error", "message": e.description}), e.code
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
