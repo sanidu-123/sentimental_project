@@ -58,6 +58,9 @@ This dashboard analyzes text sentiment in real-time, classifying input as positi
 
 ## API Endpoints
 
+### `/` (GET)
+Root endpoint for static files.
+
 ### `/analyze` (POST)
 Analyzes text sentiment.
 ```json
