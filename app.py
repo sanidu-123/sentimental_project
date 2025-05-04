@@ -157,6 +157,7 @@ def analyze():
 
             # Debug print
             print(f"Analysis complete - Label: {label}, Score: {score}")
+
         except Exception as e:
             logger.error(f"Classifier failed: {str(e)}")
             raise Exception(f"Sentiment analysis failed: {str(e)}")
