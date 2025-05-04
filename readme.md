@@ -1,4 +1,4 @@
-# Sentiment Analysis and Trend Dashboard ☺️😡
+# Sentiment Analysis and Trend Dashboard 📊
 
 A real-time web application for text sentiment analysis with visualization capabilities.
 
